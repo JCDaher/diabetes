@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciamento de Diabetes Tipo 1</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"], input[type="date"], input[type="month"], select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .message {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gerenciamento de Diabetes Tipo 1</h1>
+        
+        <h2>Dados do Paciente</h2>
+        <form id="patientForm">
+            <div class="form-group">
+                <label for="nome">Nome:</label>
+                <input type="text" id="nome" required>
+            </div>
+            <div class="form-group">
+                <label for="sexo">Sexo:</label>
+                <select id="sexo" required>
+                    <option value="">Selecione</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Feminino">Feminino</option>
+                    <option value="Outro">Outro</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="dataNascimento">Data de Nascimento:</label>
+                <input type="date" id="dataNascimento" required>
+            </div>
+            <div class="form-group">
+                <label for="dataDiagnostico">Mês e Ano de Diagnóstico:</label>
+                <input type="month" id="dataDiagnostico" required>
+            </div>
+            <button type="submit">Salvar Dados do Paciente</button>
+        </form>
+        <div id="patientMessage" class="message" style="display: none;"></div>
+
+        <h2>Novo Registro</h2>
+        <form id="diabetesForm">
+            <div class="form-group">
+                <label for="data">Data:</label>
+                <input type="date" id="data" required>
+            </div>
+            <div class="form-group">
+                <label for="hba1c">HbA1c (%):</label>
+                <input type="number" id="hba1c" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="insulinaBasal">Dose de Insulina Basal (unidades):</label>
+                <input type="number" id="insulinaBasal" step="0.1">
+            </div>
+            <div class="form-group">
+                <label for="insulinaRapida">Dose de Insulina de Ação Rápida (unidades):</label>
+                <input type="number" id="insulinaRapida" step="0.1">
+            </div>
+            <div class="form-group">
+                <label for="intercorrencias">Intercorrências Médicas:</label>
+                <textarea id="intercorrencias"></textarea>
+            </div>
+            <button type="submit">Salvar Registro</button>
+        </form>
+        <div id="message" class="message" style="display: none;"></div>
+
+        <h2>Registros</h2>
+        <table id="registrosTable">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>HbA1c</th>
+                    <th>Insulina Basal</th>
+                    <th>Insulina Rápida</th>
+                    <th>Intercorrências</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Os registros serão inseridos aqui -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let patientData = JSON.parse(localStorage.getItem('patientData')) || null;
+        let registros = JSON.parse(localStorage.getItem('registrosDiabetes')) || [];
+
+        function salvarDadosPaciente(evento) {
+            evento.preventDefault();
+            
+            patientData = {
+                nome: document.getElementById('nome').value,
+                sexo: document.getElementById('sexo').value,
+                dataNascimento: document.getElementById('dataNascimento').value,
+                dataDiagnostico: document.getElementById('dataDiagnostico').value
+            };
+
+            localStorage.setItem('patientData', JSON.stringify(patientData));
+            mostrarMensagem('Dados do paciente salvos com sucesso!', 'success', 'patientMessage');
+            document.getElementById('patientForm').style.display = 'none';
+            document.getElementById('diabetesForm').style.display = 'block';
+        }
+
+        function salvarRegistro(evento) {
+            evento.preventDefault();
+            
+            if (!patientData) {
+                alert('Por favor, preencha os dados do paciente primeiro.');
+                return;
+            }
+
+            const novoRegistro = {
+                data: document.getElementById('data').value,
+                hba1c: document.getElementById('hba1c').value,
+                insulinaBasal: document.getElementById('insulinaBasal').value,
+                insulinaRapida: document.getElementById('insulinaRapida').value,
+                intercorrencias: document.getElementById('intercorrencias').value
+            };
+
+            registros.push(novoRegistro);
+            localStorage.setItem('registrosDiabetes', JSON.stringify(registros));
+            
+            atualizarTabela();
+            document.getElementById('diabetesForm').reset();
+            
+            mostrarMensagem('Registro salvo com sucesso!', 'success', 'message');
+        }
+
+        function atualizarTabela() {
+            const tbody = document.querySelector('#registrosTable tbody');
+            tbody.innerHTML = '';
+            
+            registros.forEach(registro => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${registro.data}</td>
+                    <td>${registro.hba1c}</td>
+                    <td>${registro.insulinaBasal || '-'}</td>
+                    <td>${registro.insulinaRapida || '-'}</td>
+                    <td>${registro.intercorrencias || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function mostrarMensagem(texto, tipo, elementId) {
+            const messageElement = document.getElementById(elementId);
+            messageElement.textContent = texto;
+            messageElement.className = `message ${tipo}`;
+            messageElement.style.display = 'block';
+            setTimeout(() => {
+                messageElement.style.display = 'none';
+            }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const patientForm = document.getElementById('patientForm');
+            const diabetesForm = document.getElementById('diabetesForm');
+
+            if (patientData) {
+                document.getElementById('nome').value = patientData.nome;
+                document.getElementById('sexo').value = patientData.sexo;
+                document.getElementById('dataNascimento').value = patientData.dataNascimento;
+                document.getElementById('dataDiagnostico').value = patientData.dataDiagnostico;
+                patientForm.style.display = 'none';
+                diabetesForm.style.display = 'block';
+            } else {
+                patientForm.style.display = 'block';
+                diabetesForm.style.display = 'none';
+            }
+
+            patientForm.addEventListener('submit', salvarDadosPaciente);
+            diabetesForm.addEventListener('submit', salvarRegistro);
+            atualizarTabela();
+        });
+    </script>
+</body>
+</html>
+    </script>
+<script>
+    let patients = JSON.parse(localStorage.getItem('patients')) || [];
+    let currentPatient = null;
+    let registros = JSON.parse(localStorage.getItem('registrosDiabetes')) || {};
+
+    function salvarDadosPaciente(evento) {
+        evento.preventDefault();
+        
+        const newPatient = {
+            id: Date.now().toString(),
+            nome: document.getElementById('nome').value,
+            sexo: document.getElementById('sexo').value,
+            dataNascimento: document.getElementById('dataNascimento').value,
+            dataDiagnostico: document.getElementById('dataDiagnostico').value
+        };
+
+        patients.push(newPatient);
+        localStorage.setItem('patients', JSON.stringify(patients));
+        mostrarMensagem('Dados do paciente salvos com sucesso!', 'success', 'patientMessage');
+        document.getElementById('patientForm').reset();
+        atualizarTabelaPacientes();
+        atualizarSeletorPacientes();
+    }
+
+    function atualizarTabelaPacientes() {
+        const tbody = document.querySelector('#patientsTable tbody');
+        tbody.innerHTML = '';
+        
+        patients.forEach(patient => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${patient.nome}</td>
+                <td>${patient.sexo}</td>
+                <td>${patient.dataNascimento}</td>
+                <td>${patient.dataDiagnostico}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function atualizarSeletorPacientes() {
+        const select = document.getElementById('patientSelect');
+        select.innerHTML = '<option value="">Selecione um paciente</option>';
+        patients.forEach(patient => {
+            const option = document.createElement('option');
+            option.value = patient.id;
+            option.textContent = patient.nome;
+            select.appendChild(option);
+        });
+        document.getElementById('patientSelector').style.display = 'block';
+    }
+
+    function selecionarPaciente(evento) {
+        const patientId = evento.target.value;
+        currentPatient = patients.find(p => p.id === patientId);
+        if (currentPatient) {
+            document.getElementById('diabetesForm').style.display = 'block';
+            document.getElementById('currentPatientName').textContent = currentPatient.nome;
+            document.getElementById('currentPatientInfo').style.display = 'block';
+            atualizarTabelaRegistros();
+        } else {
+            document.getElementById('diabetesForm').style.display = 'none';
+            document.getElementById('currentPatientInfo').style.display = 'none';
+        }
+    }
+
+    function salvarRegistro(evento) {
+        evento.preventDefault();
+        
+        if (!currentPatient) {
+            alert('Por favor, selecione um paciente primeiro.');
+            return;
+        }
+
+        const novoRegistro = {
+            data: document.getElementById('data').value,
+            hba1c: document.getElementById('hba1c').value,
+            insulinaBasal: document.getElementById('insulinaBasal').value,
+            insulinaRapida: document.getElementById('insulinaRapida').value,
+            intercorrencias: document.getElementById('intercorrencias').value
+        };
+
+        if (!registros[currentPatient.id]) {
+            registros[currentPatient.id] = [];
+        }
+        registros[currentPatient.id].push(novoRegistro);
+        localStorage.setItem('registrosDiabetes', JSON.stringify(registros));
+        
+        atualizarTabelaRegistros();
+        document.getElementById('diabetesForm').reset();
+        
+        mostrarMensagem('Registro salvo com sucesso!', 'success', 'message');
+    }
+
+    function atualizarTabelaRegistros() {
+        const tbody = document.querySelector('#registrosTable tbody');
+        tbody.innerHTML = '';
+        
+        if (currentPatient && registros[currentPatient.id]) {
+            registros[currentPatient.id].forEach(registro => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${registro.data}</td>
+                    <td>${registro.hba1c}</td>
+                    <td>${registro.insulinaBasal || '-'}</td>
+                    <td>${registro.insulinaRapida || '-'}</td>
+                    <td>${registro.intercorrencias || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    function mostrarMensagem(texto, tipo, elementId) {
+        const messageElement = document.getElementById(elementId);
+        messageElement.textContent = texto;
+        messageElement.className = `message ${tipo}`;
+        messageElement.style.display = 'block';
+        setTimeout(() => {
+            messageElement.style.display = 'none';
+        }, 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('patientForm').addEventListener('submit', salvarDadosPaciente);
+        document.getElementById('diabetesForm').addEventListener('submit', salvarRegistro);
+        document.getElementById('patientSelect').addEventListener('change', selecionarPaciente);
+        atualizarTabelaPacientes();
+        atualizarSeletorPacientes();
+    });
+</script>
+<div id="currentPatientInfo" style="display: none;">
+    <h3>Paciente Atual: <span id="currentPatientName"></span></h3>
+</div>
+</body>
+</html>
